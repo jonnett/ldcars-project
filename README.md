@@ -35,5 +35,9 @@ Para ejecutar este proyecto localmente, asegúrate de tener instalado [Node.js](
 2. Instalar las dependencias:
     npm install
 
-3.Para ejectuar:
+3. Para ejectuar:
     npm run dev
+
+4. Para iniciar sesion como admin:
+    usuario:admin123
+    contraseña:1234

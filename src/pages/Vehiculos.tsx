@@ -23,15 +23,18 @@ export default function Vehiculos() {
   const isCliente = auth?.usuario?.role === 'cliente';
 
   // --- ESTADO INICIAL: VEHICULOS ---
+
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>(() => {
     const guardados = localStorage.getItem('ldcars_vehiculos');
     return guardados ? JSON.parse(guardados) : [];
   });
   
   const [busqueda, setBusqueda] = useState('');
+  
   const [editandoId, setEditandoId] = useState<string | null>(null);
   
-  // --- ESTADO DEL FORMULARIO ---
+  // --- ESTADO DEL FORMULARIO (EXPANDIDO) ---
+
   const [form, setForm] = useState({ 
     marca: '', 
     modelo: '', 
@@ -44,7 +47,9 @@ export default function Vehiculos() {
   });
 
   // --- ESTADO DE RESERVA ---
+
   const [vehiculoReserva, setVehiculoReserva] = useState<Vehiculo | null>(null);
+  
   const [formReserva, setFormReserva] = useState({ 
     nombreReal: '', 
     correo: '', 
@@ -53,15 +58,18 @@ export default function Vehiculos() {
   });
 
   // --- PAGINACIÓN ---
+
   const [paginaActual, setPaginaActual] = useState(1);
   const vehiculosPorPagina = 3;
 
   // --- PERSISTENCIA ---
+
   useEffect(() => { 
     localStorage.setItem('ldcars_vehiculos', JSON.stringify(vehiculos)); 
   }, [vehiculos]);
 
   // --- LÓGICA DE FILTRADO Y PAGINACIÓN ---
+
   const filtrados = vehiculos.filter(v => 
     v.marca.toLowerCase().includes(busqueda.toLowerCase()) || 
     v.modelo.toLowerCase().includes(busqueda.toLowerCase())
@@ -72,12 +80,15 @@ export default function Vehiculos() {
   const itemsPagina = filtrados.slice(indicePrimero, indiceUltimo);
   const totalPaginas = Math.ceil(filtrados.length / vehiculosPorPagina);
 
-  useEffect(() => { setPaginaActual(1); }, [busqueda]);
+  useEffect(() => { 
+    setPaginaActual(1); 
+  }, [busqueda]);
 
   // --- FUNCIONES CRUD ---
 
   const handleGuardar = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (editandoId) {
       setVehiculos(vehiculos.map(v => 
         v.id === editandoId ? { ...v, ...form, anio: Number(form.anio), precio: Number(form.precio) } : v
@@ -91,7 +102,17 @@ export default function Vehiculos() {
         precio: Number(form.precio) 
       }]);
     }
-    setForm({ marca: '', modelo: '', anio: '', patente: '', precio: '', color: '', estado: 'nuevo', imagen: '' });
+    
+    setForm({ 
+      marca: '', 
+      modelo: '', 
+      anio: '', 
+      patente: '', 
+      precio: '', 
+      color: '', 
+      estado: 'nuevo', 
+      imagen: '' 
+    });
   };
 
   const handleEliminar = (id: string) => { 
@@ -137,13 +158,14 @@ export default function Vehiculos() {
   const confirmarReserva = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validaciones
     if (!esEmailValido(formReserva.correo)) {
       return alert("❌ Correo inválido.");
     }
+    
     if (!/^\d+$/.test(formReserva.telefono)) {
       return alert("❌ El teléfono solo debe contener números.");
     }
+    
     if (!esFechaValida(formReserva.fechaVisita)) {
       return alert("❌ La fecha de visita no puede ser anterior a hoy.");
     }
@@ -167,6 +189,8 @@ export default function Vehiculos() {
     alert("✅ ¡Reserva confirmada!");
     setVehiculoReserva(null);
   };
+
+  // --- RENDERIZADO ---
 
   return (
     <section>
@@ -208,10 +232,18 @@ export default function Vehiculos() {
       )}
 
       {/* LISTA DE VEHICULOS CON PAGINACION */}
+
       <div className="list-container" style={{ minHeight: '400px', transition: '0.3s' }}>
         {itemsPagina.map(v => (
           <div key={v.id} className="item-card">
-            {v.imagen && <img src={v.imagen} alt={v.modelo} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', marginBottom: '10px' }} />}
+            
+            {v.imagen && (
+              <img 
+                src={v.imagen} 
+                alt={v.modelo} 
+                style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} 
+              />
+            )}
             
             <h3>{v.marca} {v.modelo}</h3>
             <p><strong>Año:</strong> {v.anio} | <strong>Color:</strong> {v.color}</p>
@@ -244,6 +276,7 @@ export default function Vehiculos() {
       </div>
 
       {/* BOTONES DE PAGINACIÓN */}
+
       {totalPaginas > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '30px', paddingBottom: '20px' }}>
           {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
@@ -264,24 +297,57 @@ export default function Vehiculos() {
       )}
 
       {/* MODAL RESERVA */}
+
       {vehiculoReserva && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: 'white', color: '#333', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Agendar Visita: {vehiculoReserva.marca}</h3>
+            <h3 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+              Agendar Visita: {vehiculoReserva.marca}
+            </h3>
             
             <form onSubmit={confirmarReserva} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-              <input placeholder="Nombre Real" value={formReserva.nombreReal} onChange={e => setFormReserva({...formReserva, nombreReal: e.target.value})} required style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
-              <input type="email" placeholder="Correo" value={formReserva.correo} onChange={e => setFormReserva({...formReserva, correo: e.target.value})} required style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
-              <input type="tel" placeholder="Teléfono" value={formReserva.telefono} onChange={e => setFormReserva({...formReserva, telefono: e.target.value})} required style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
+              <input 
+                placeholder="Nombre Real" 
+                value={formReserva.nombreReal} 
+                onChange={e => setFormReserva({...formReserva, nombreReal: e.target.value})} 
+                required 
+                style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+              />
+              <input 
+                type="email" 
+                placeholder="Correo" 
+                value={formReserva.correo} 
+                onChange={e => setFormReserva({...formReserva, correo: e.target.value})} 
+                required 
+                style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+              />
+              <input 
+                type="tel" 
+                placeholder="Teléfono" 
+                value={formReserva.telefono} 
+                onChange={e => setFormReserva({...formReserva, telefono: e.target.value})} 
+                required 
+                style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+              />
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                 <label style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>Fecha de Visita:</label>
-                <input type="date" value={formReserva.fechaVisita} onChange={e => setFormReserva({...formReserva, fechaVisita: e.target.value})} required style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                <input 
+                  type="date" 
+                  value={formReserva.fechaVisita} 
+                  onChange={e => setFormReserva({...formReserva, fechaVisita: e.target.value})} 
+                  required 
+                  style={{ padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+                />
               </div>
               
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={{ flex: 1, padding: '12px', background: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Confirmar</button>
-                <button type="button" onClick={() => setVehiculoReserva(null)} style={{ flex: 1, padding: '12px', background: '#7f8c8d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" style={{ flex: 1, padding: '12px', background: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  Confirmar
+                </button>
+                <button type="button" onClick={() => setVehiculoReserva(null)} style={{ flex: 1, padding: '12px', background: '#7f8c8d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                  Cancelar
+                </button>
               </div>
             </form>
           </div>
