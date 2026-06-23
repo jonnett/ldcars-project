@@ -1,6 +1,9 @@
 export interface Usuario {
   username: string;
   role: 'admin' | 'cliente';
+  correo?: string;
+  nombreReal?: string;
+  telefono?: string;
 }
 
 export interface Vehiculo {
@@ -23,20 +26,22 @@ export interface Articulo {
   categoria: string;
   procedencia: string;
   estado: string;
+  imagen?: string; // Soportará fotos
 }
 
-// NUEVO: Para gestionar a los trabajadores
 export interface Colaborador {
   id: string;
   nombre: string;
   cargo: string;
 }
 
-// NUEVO: Para las citas/reservas de autos
 export interface Reserva {
   id: string;
   vehiculoId: string;
   vehiculoNombre: string;
-  cliente: string;
+  clienteUser: string;
+  nombreReal: string;
+  correo: string;
+  telefono: string;
   fecha: string;
 }
