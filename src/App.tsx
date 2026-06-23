@@ -1,13 +1,21 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { useContext, useState, useEffect } from 'react';
 import Carrusel from './components/Carrusel';
 import Vehiculos from './pages/Vehiculos';
 import Articulos from './pages/Articulos';
 import DetalleVehiculo from './pages/DetalleVehiculo';
-import Equipo from './components/Equipo';
 import DetalleArticulo from './pages/DetalleArticulo';
+import Equipo from './components/Equipo';
+import MisReservas from './pages/MisReservas';
 import './App.css';
+
+// Utilidad para validación de email
+const esEmailValido = (email: string) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  return regex.test(email);
+};
 
 const NavBar = () => {
   const auth = useContext(AuthContext);
@@ -16,28 +24,53 @@ const NavBar = () => {
   const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [modoRegistro, setModoRegistro] = useState(false);
   
-  // Estados para validación
   const [formLogin, setFormLogin] = useState({ user: '', pass: '' });
-  const [formReg, setFormReg] = useState({ user: '', pass: '', passConfirm: '', nombre: '', correo: '', telefono: '' });
+  const [formReg, setFormReg] = useState({ 
+    user: '', 
+    pass: '', 
+    passConfirm: '', 
+    nombre: '', 
+    correo: '', 
+    telefono: '' 
+  });
 
   useEffect(() => {
-    if (isDark) { document.body.classList.add('dark-mode'); localStorage.setItem('ldcars_theme', 'dark'); } 
-    else { document.body.classList.remove('dark-mode'); localStorage.setItem('ldcars_theme', 'light'); }
+    if (isDark) { 
+      document.body.classList.add('dark-mode'); 
+      localStorage.setItem('ldcars_theme', 'dark'); 
+    } else { 
+      document.body.classList.remove('dark-mode'); 
+      localStorage.setItem('ldcars_theme', 'light'); 
+    }
   }, [isDark]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const exito = auth?.login(formLogin.user, formLogin.pass);
-    if (!exito) alert("Credenciales incorrectas.");
-    else { setMenuAbierto(false); setFormLogin({ user: '', pass: '' }); }
+    if (!exito) {
+      alert("Credenciales incorrectas.");
+    } else {
+      setMenuAbierto(false);
+      setFormLogin({ user: '', pass: '' });
+    }
   };
 
   const handleRegistro = (e: React.FormEvent) => {
     e.preventDefault();
-    // VALIDACIONES (VERIFICADORES)
-    if (formReg.pass !== formReg.passConfirm) return alert("❌ Las contraseñas no coinciden.");
-    if (formReg.pass.length < 4) return alert("❌ La contraseña debe tener al menos 4 caracteres.");
-    if (formReg.telefono.length < 8) return alert("❌ Ingrese un número de teléfono válido (mínimo 8 dígitos).");
+    
+    // Validación de campos
+    if (!esEmailValido(formReg.correo)) {
+      return alert("❌ El formato del correo es inválido (ej: usuario@empresa.com)");
+    }
+    if (formReg.pass !== formReg.passConfirm) {
+      return alert("❌ Las contraseñas no coinciden.");
+    }
+    if (formReg.pass.length < 4) {
+      return alert("❌ La contraseña debe tener al menos 4 caracteres.");
+    }
+    if (formReg.telefono.length < 8) {
+      return alert("❌ Ingrese un número de teléfono válido (mínimo 8 dígitos).");
+    }
     
     const exito = auth?.registrar(formReg);
     if (exito === true) {
@@ -45,7 +78,7 @@ const NavBar = () => {
       setMenuAbierto(false);
       setFormReg({ user: '', pass: '', passConfirm: '', nombre: '', correo: '', telefono: '' });
     } else {
-      alert(`❌ Error: ${exito}`); // Muestra por qué falló
+      alert(`❌ Error: ${exito}`);
     }
   };
 
@@ -54,7 +87,10 @@ const NavBar = () => {
   return (
     <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 40px', backgroundColor: '#2c3e50', color: 'white' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        <label className="theme-switch"><input type="checkbox" checked={isDark} onChange={() => setIsDark(!isDark)} /><span className="slider"></span></label>
+        <label className="theme-switch" title="Cambiar a Modo Oscuro/Claro">
+          <input type="checkbox" checked={isDark} onChange={() => setIsDark(!isDark)} />
+          <span className="slider"></span>
+        </label>
         <h1 style={{ margin: 0 }}>LdCars</h1>
       </div>
 
@@ -65,12 +101,15 @@ const NavBar = () => {
               Hola, {auth.usuario.username} {auth.usuario.role === 'admin' ? '👑' : ''}
             </span>
             
-            {/* Botón y Dropdown del Carrito */}
             {auth.usuario.role === 'cliente' && (
               <div style={{ position: 'relative' }}>
+                <Link to="/mis-reservas" style={{ color: 'white', textDecoration: 'none', background: '#2980b9', padding: '8px 12px', borderRadius: '4px', marginRight: '10px' }}>
+                  Mis Reservas
+                </Link>
                 <button onClick={() => setCarritoAbierto(!carritoAbierto)} style={{ cursor: 'pointer', background: '#e67e22', color: 'white', padding: '8px 15px', borderRadius: '4px', border: 'none', fontWeight: 'bold' }}>
                   🛒 Carrito ({auth.carrito.length})
                 </button>
+                
                 {carritoAbierto && (
                   <div style={{ position: 'absolute', top: '45px', right: '0', width: '300px', background: isDark ? '#16213e' : 'white', color: isDark ? 'white' : 'black', padding: '15px', borderRadius: '8px', boxShadow: '0 8px 16px rgba(0,0,0,0.3)', zIndex: 200 }}>
                     <h3 style={{ marginTop: 0 }}>Tu Carrito</h3>
@@ -88,7 +127,7 @@ const NavBar = () => {
                           ))}
                         </ul>
                         <div style={{ fontWeight: 'bold', textAlign: 'right', marginTop: '10px', fontSize: '1.2rem' }}>Total: ${totalCarrito.toLocaleString()}</div>
-                        <button onClick={() => { alert('¡Compra simulada con éxito!'); auth.logout(); }} style={{ width: '100%', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', marginTop: '10px', cursor: 'pointer', fontWeight: 'bold' }}>Proceder al Pago</button>
+                        <button onClick={() => { alert('¡Compra simulada con éxito!'); auth.vaciarCarrito(); }} style={{ width: '100%', padding: '10px', background: '#2ecc71', color: 'white', border: 'none', borderRadius: '4px', marginTop: '10px', cursor: 'pointer', fontWeight: 'bold' }}>Proceder al Pago</button>
                       </>
                     )}
                   </div>
@@ -153,6 +192,7 @@ function App() {
               <Route path="/" element={<InicioCompleto />} />
               <Route path="/vehiculo/:id" element={<DetalleVehiculo />} />
               <Route path="/articulo/:id" element={<DetalleArticulo />} />
+              <Route path="/mis-reservas" element={<MisReservas />} />
             </Routes>
           </main>
         </div>
