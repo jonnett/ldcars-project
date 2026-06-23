@@ -6,6 +6,7 @@ import Vehiculos from './pages/Vehiculos';
 import Articulos from './pages/Articulos';
 import DetalleVehiculo from './pages/DetalleVehiculo';
 import Equipo from './components/Equipo';
+import DetalleArticulo from './pages/DetalleArticulo';
 import './App.css';
 
 const NavBar = () => {
@@ -151,6 +152,7 @@ function App() {
             <Routes>
               <Route path="/" element={<InicioCompleto />} />
               <Route path="/vehiculo/:id" element={<DetalleVehiculo />} />
+              <Route path="/articulo/:id" element={<DetalleArticulo />} />
             </Routes>
           </main>
         </div>
