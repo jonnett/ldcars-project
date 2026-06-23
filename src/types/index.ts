@@ -1,7 +1,12 @@
 // src/types/index.ts
 
+export interface Usuario {
+  username: string;
+  isAdmin: boolean;
+}
+
 export interface Vehiculo {
-  id: string; // Usaremos string porque generaremos IDs únicos con Date.now() o crypto
+  id: string;
   anio: number;
   patente: string;
   color: string;
@@ -19,9 +24,4 @@ export interface Articulo {
   categoria: string;
   procedencia: string;
   estado: string;
-}
-
-export interface Usuario {
-  username: string;
-  isAdmin: boolean;
 }
