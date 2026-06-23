@@ -1,6 +1,6 @@
 export interface Usuario {
   username: string;
-  isAdmin: boolean;
+  role: 'admin' | 'cliente';
 }
 
 export interface Vehiculo {
@@ -23,4 +23,20 @@ export interface Articulo {
   categoria: string;
   procedencia: string;
   estado: string;
+}
+
+// NUEVO: Para gestionar a los trabajadores
+export interface Colaborador {
+  id: string;
+  nombre: string;
+  cargo: string;
+}
+
+// NUEVO: Para las citas/reservas de autos
+export interface Reserva {
+  id: string;
+  vehiculoId: string;
+  vehiculoNombre: string;
+  cliente: string;
+  fecha: string;
 }
