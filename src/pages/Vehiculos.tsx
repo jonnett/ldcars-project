@@ -3,12 +3,13 @@ import type { Vehiculo, Reserva } from '../types/index';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
+// --- VALIDACIONES DE APOYO ---
+
 const esEmailValido = (email: string) => {
   const regex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   return regex.test(email);
 };
 
-// Nueva validación para que no sea una fecha pasada
 const esFechaValida = (fecha: string) => {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
@@ -21,6 +22,7 @@ export default function Vehiculos() {
   const isAdmin = auth?.usuario?.role === 'admin';
   const isCliente = auth?.usuario?.role === 'cliente';
 
+  // --- ESTADO INICIAL: VEHICULOS ---
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>(() => {
     const guardados = localStorage.getItem('ldcars_vehiculos');
     return guardados ? JSON.parse(guardados) : [];
@@ -29,6 +31,7 @@ export default function Vehiculos() {
   const [busqueda, setBusqueda] = useState('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   
+  // --- ESTADO DEL FORMULARIO ---
   const [form, setForm] = useState({ 
     marca: '', 
     modelo: '', 
@@ -40,8 +43,8 @@ export default function Vehiculos() {
     imagen: '' 
   });
 
+  // --- ESTADO DE RESERVA ---
   const [vehiculoReserva, setVehiculoReserva] = useState<Vehiculo | null>(null);
-  
   const [formReserva, setFormReserva] = useState({ 
     nombreReal: '', 
     correo: '', 
@@ -49,9 +52,29 @@ export default function Vehiculos() {
     fechaVisita: '' 
   });
 
+  // --- PAGINACIÓN ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const vehiculosPorPagina = 3;
+
+  // --- PERSISTENCIA ---
   useEffect(() => { 
     localStorage.setItem('ldcars_vehiculos', JSON.stringify(vehiculos)); 
   }, [vehiculos]);
+
+  // --- LÓGICA DE FILTRADO Y PAGINACIÓN ---
+  const filtrados = vehiculos.filter(v => 
+    v.marca.toLowerCase().includes(busqueda.toLowerCase()) || 
+    v.modelo.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  const indiceUltimo = paginaActual * vehiculosPorPagina;
+  const indicePrimero = indiceUltimo - vehiculosPorPagina;
+  const itemsPagina = filtrados.slice(indicePrimero, indiceUltimo);
+  const totalPaginas = Math.ceil(filtrados.length / vehiculosPorPagina);
+
+  useEffect(() => { setPaginaActual(1); }, [busqueda]);
+
+  // --- FUNCIONES CRUD ---
 
   const handleGuardar = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +115,8 @@ export default function Vehiculos() {
     window.scrollTo(0, 0);
   };
 
+  // --- LÓGICA DE RESERVA ---
+
   const abrirReserva = (v: Vehiculo) => {
     const reservas = JSON.parse(localStorage.getItem('ldcars_reservas') || '[]');
     const yaReservo = reservas.find((r: Reserva) => r.vehiculoId === v.id && r.clienteUser === auth?.usuario?.username);
@@ -112,10 +137,16 @@ export default function Vehiculos() {
   const confirmarReserva = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validaciones Integradas
-    if (!esEmailValido(formReserva.correo)) return alert("❌ El formato del correo es inválido.");
-    if (!/^\d+$/.test(formReserva.telefono)) return alert("❌ El teléfono solo debe contener números.");
-    if (!esFechaValida(formReserva.fechaVisita)) return alert("❌ La fecha de visita no puede ser anterior a hoy.");
+    // Validaciones
+    if (!esEmailValido(formReserva.correo)) {
+      return alert("❌ Correo inválido.");
+    }
+    if (!/^\d+$/.test(formReserva.telefono)) {
+      return alert("❌ El teléfono solo debe contener números.");
+    }
+    if (!esFechaValida(formReserva.fechaVisita)) {
+      return alert("❌ La fecha de visita no puede ser anterior a hoy.");
+    }
     
     if (!auth?.usuario || !vehiculoReserva) return;
 
@@ -133,14 +164,9 @@ export default function Vehiculos() {
     const reservasGuardadas = JSON.parse(localStorage.getItem('ldcars_reservas') || '[]');
     localStorage.setItem('ldcars_reservas', JSON.stringify([...reservasGuardadas, nuevaReserva]));
     
-    alert("✅ ¡Reserva confirmada! Un ejecutivo te contactará pronto.");
+    alert("✅ ¡Reserva confirmada!");
     setVehiculoReserva(null);
   };
-
-  const filtrados = vehiculos.filter(v => 
-    v.marca.toLowerCase().includes(busqueda.toLowerCase()) || 
-    v.modelo.toLowerCase().includes(busqueda.toLowerCase())
-  );
 
   return (
     <section>
@@ -181,8 +207,9 @@ export default function Vehiculos() {
         </form>
       )}
 
-      <div className="list-container">
-        {filtrados.map(v => (
+      {/* LISTA DE VEHICULOS CON PAGINACION */}
+      <div className="list-container" style={{ minHeight: '400px', transition: '0.3s' }}>
+        {itemsPagina.map(v => (
           <div key={v.id} className="item-card">
             {v.imagen && <img src={v.imagen} alt={v.modelo} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '6px', marginBottom: '10px' }} />}
             
@@ -216,8 +243,29 @@ export default function Vehiculos() {
         ))}
       </div>
 
+      {/* BOTONES DE PAGINACIÓN */}
+      {totalPaginas > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '30px', paddingBottom: '20px' }}>
+          {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+            <button 
+              key={num} 
+              onClick={() => { setPaginaActual(num); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+              style={{ 
+                padding: '10px 15px', 
+                background: paginaActual === num ? '#3498db' : '#ecf0f1', 
+                color: paginaActual === num ? 'white' : 'black',
+                border: 'none', borderRadius: '50%', cursor: 'pointer', fontWeight: 'bold' 
+              }}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* MODAL RESERVA */}
       {vehiculoReserva && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <div style={{ background: 'white', color: '#333', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
             <h3 style={{ marginTop: 0, color: '#2c3e50', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>Agendar Visita: {vehiculoReserva.marca}</h3>
             

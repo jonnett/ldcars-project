@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# Intranet LdCars — Gestión Automotriz
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este proyecto es una aplicación web de tipo Intranet desarrollada para la Evaluación Sumativa 3 de la asignatura Programación FrontEnd. Su objetivo es gestionar eficientemente la información de una automotora, incluyendo la administración de inventarios, clientes y agendamiento de visitas.
 
-Currently, two official plugins are available:
+## Contexto del Proyecto
+La aplicación ha sido diseñada para permitir a usuarios internos (Administradores) y externos (Clientes) interactuar con el sistema de la automotora "LdCars". Se ha desarrollado utilizando React + TypeScript y utiliza LocalStorage como motor de persistencia de datos.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Funcionalidades Implementadas
+La Intranet cuenta con los siguientes módulos operativos:
 
-## React Compiler
+1.  Autenticación de Usuarios:Sistema de login y registro de clientes con validaciones de formato (email, teléfono) y contraseñas seguras.
+2.  Gestión de Vehículos (CRUD):Permite crear, visualizar, editar y eliminar vehículos. Incluye buscador en tiempo real y persistencia en LocalStorage.
+3.  Gestión de Repuestos (CRUD): Módulo para administrar artículos, visualización de detalles con imágenes y carrito de compras para clientes.
+4.  Sistema de Reservas: Los clientes pueden agendar visitas a los vehículos. Incluye validaciones de fecha (no permite fechas pasadas) y formularios de contacto.
+5.  Carrito de Compras: Sistema persistente para la selección de repuestos, con cálculo total y vaciado al confirmar compra.
+6.  Gestión de Equipo: Módulo para administrar al personal (colaboradores) de la empresa.
+7.  Modo Oscuro: Interfaz adaptable mediante switch para mejorar la experiencia de usuario.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tecnologías Utilizadas
+*   Frontend: React (Vite)
+*   Lenguaje: TypeScript
+*   Estado Global: React Context API (`useContext`)
+*   Persistencia: LocalStorage API
+*   Enrutamiento: React Router Dom
 
-## Expanding the ESLint configuration
+## Instalación y Ejecución
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Para ejecutar este proyecto localmente, asegúrate de tener instalado [Node.js](https://nodejs.org/).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Clonar repositorio
 ```
+   git clone https://github.com/jonnett/ldcars-project
+   cd ldcars-project
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+2. Instalar las dependencias:
+    npm install
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3.Para ejectuar:
+    npm run dev
