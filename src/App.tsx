@@ -1,52 +1,80 @@
-// src/App.tsx
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
 import Carrusel from './components/Carrusel';
+import Vehiculos from './pages/Vehiculos';
+import Articulos from './pages/Articulos';
+import DetalleVehiculo from './pages/DetalleVehiculo';
 import './App.css';
 
-// --- VISTAS TEMPORALES (Las crearemos bien en el siguiente paso) ---
-const Login = () => {
-  const auth = useContext(AuthContext);
-  return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h2>Iniciar Sesión en LdCars</h2>
-      <button onClick={() => auth?.login('AdminLdCars')} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-        Simular Ingreso
-      </button>
-    </div>
-  );
-};
-
-const Dashboard = () => (
-  <div>
-    <h2>Bienvenido a la Intranet de LdCars</h2>
-    <Carrusel />
-  </div>
-);
-
-const Vehiculos = () => <div><h2>Módulo de Vehículos (Próximamente)</h2></div>;
-const Articulos = () => <div><h2>Módulo de Artículos (Próximamente)</h2></div>;
-// -------------------------------------------------------------------
-
-// Componente para la barra de navegación (solo se ve si hay sesión)
 const NavBar = () => {
   const auth = useContext(AuthContext);
-  if (!auth?.usuario) return null;
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    auth?.login(user, pass);
+    setUser('');
+    setPass('');
+  };
 
   return (
-    <header>
-      <h1>LdCars Admin</h1>
-      <nav style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '10px' }}>
-        <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Inicio</Link>
-        <Link to="/vehiculos" style={{ color: 'white', textDecoration: 'none' }}>Vehículos</Link>
-        <Link to="/articulos" style={{ color: 'white', textDecoration: 'none' }}>Artículos (Repuestos)</Link>
-        <button onClick={auth.logout} style={{ marginLeft: '20px', cursor: 'pointer' }}>Cerrar Sesión</button>
-      </nav>
+    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 40px', backgroundColor: '#2c3e50', color: 'white' }}>
+      <h1 style={{ margin: 0 }}>LdCars</h1>
+      
+      {/* Sistema de Login en el Header */}
+      {auth?.esAdmin ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <span style={{ fontWeight: 'bold', color: '#2ecc71' }}>Modo Administrador Activo</span>
+          <button onClick={auth.logout} style={{ padding: '8px 15px', cursor: 'pointer', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px' }}>
+            Cerrar Sesión
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleLogin} style={{ display: 'flex', gap: '10px' }}>
+          <input 
+            placeholder="Usuario" 
+            value={user} onChange={e => setUser(e.target.value)} 
+            style={{ padding: '8px', borderRadius: '4px', border: 'none' }} 
+          />
+          <input 
+            type="password" 
+            placeholder="Contraseña" 
+            value={pass} onChange={e => setPass(e.target.value)} 
+            style={{ padding: '8px', borderRadius: '4px', border: 'none' }} 
+          />
+          <button type="submit" style={{ padding: '8px 15px', cursor: 'pointer', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px' }}>
+            Entrar
+          </button>
+        </form>
+      )}
     </header>
   );
 };
+
+// Componente que junta todo como quería tu compañero
+const InicioCompleto = () => (
+  <>
+    <Carrusel />
+    <Vehiculos />
+    <Articulos />
+    
+    <section style={{ marginTop: '50px' }}>
+      <h2>Nuestro Equipo</h2>
+      <div className="team-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginTop: '20px' }}>
+        <div className="item-card" style={{ textAlign: 'center' }}>
+          <h3>Juan Pérez</h3>
+          <p style={{ color: '#7f8c8d' }}>Gerente de Ventas</p>
+        </div>
+        <div className="item-card" style={{ textAlign: 'center' }}>
+          <h3>Ana Gómez</h3>
+          <p style={{ color: '#7f8c8d' }}>Jefa de Operaciones</p>
+        </div>
+      </div>
+    </section>
+  </>
+);
 
 function App() {
   return (
@@ -54,16 +82,13 @@ function App() {
       <BrowserRouter>
         <div className="admin-container">
           <NavBar />
-          
           <main className="dashboard-grid">
             <Routes>
-              {/* Ruta pública */}
-              <Route path="/login" element={<Login />} />
+              {/* Ruta principal: Muestra absolutamente todo */}
+              <Route path="/" element={<InicioCompleto />} />
               
-              {/* Rutas protegidas */}
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/vehiculos" element={<ProtectedRoute><Vehiculos /></ProtectedRoute>} />
-              <Route path="/articulos" element={<ProtectedRoute><Articulos /></ProtectedRoute>} />
+              {/* Ruta dinámica para cumplir la rúbrica */}
+              <Route path="/vehiculo/:id" element={<DetalleVehiculo />} />
             </Routes>
           </main>
         </div>

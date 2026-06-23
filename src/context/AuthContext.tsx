@@ -1,35 +1,36 @@
-// src/context/AuthContext.tsx
 import React, { createContext, useState } from 'react';
-import type { Usuario } from '../types/index'; // <-- Agregamos 'type' para forzar la detección
 
+// Cambiamos el contexto para manejar solo si es admin o no
 interface AuthContextType {
-  usuario: Usuario | null;
-  login: (username: string) => void;
+  esAdmin: boolean;
+  login: (user: string, pass: string) => void;
   logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usamos React.ReactNode directamente para evitar el error de importación
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [usuario, setUsuario] = useState<Usuario | null>(() => {
-    const guardado = localStorage.getItem('usuarioLdCars');
-    return guardado ? JSON.parse(guardado) : null;
+  // Verificamos si ya estaba logueado como admin en el localStorage
+  const [esAdmin, setEsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('ldcars_admin') === 'true';
   });
 
-  const login = (username: string) => {
-    const nuevoUsuario: Usuario = { username, isAdmin: true };
-    setUsuario(nuevoUsuario);
-    localStorage.setItem('usuarioLdCars', JSON.stringify(nuevoUsuario)); 
+  const login = (user: string, pass: string) => {
+    if (user === 'admin123' && pass === '1234') {
+      setEsAdmin(true);
+      localStorage.setItem('ldcars_admin', 'true');
+    } else {
+      alert("Credenciales incorrectas");
+    }
   };
 
   const logout = () => {
-    setUsuario(null);
-    localStorage.removeItem('usuarioLdCars'); 
+    setEsAdmin(false);
+    localStorage.removeItem('ldcars_admin');
   };
 
   return (
-    <AuthContext.Provider value={{ usuario, login, logout }}>
+    <AuthContext.Provider value={{ esAdmin, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
