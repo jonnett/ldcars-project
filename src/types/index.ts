@@ -1,5 +1,3 @@
-// src/types/index.ts
-
 export interface Usuario {
   username: string;
   isAdmin: boolean;
@@ -14,6 +12,7 @@ export interface Vehiculo {
   modelo: string;
   marca: string;
   precio: number;
+  imagen?: string;
 }
 
 export interface Articulo {
