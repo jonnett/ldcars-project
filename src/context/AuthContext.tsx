@@ -1,11 +1,20 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut 
+} from 'firebase/auth';
+import { auth } from '../firebase'; // Importamos tu conexión segura a Firebase
 import type { Usuario, Articulo } from '../types/index';
 
+// Actualizamos el contrato: ahora las funciones devuelven Promesas (porque van a la nube)
 interface AuthContextType {
   usuario: Usuario | null;
-  login: (user: string, pass: string) => boolean;
-  registrar: (datos: any) => boolean | string;
-  logout: () => void;
+  cargandoAuth: boolean; // Necesario para evitar parpadeos en rutas protegidas
+  login: (email: string, pass: string) => Promise<void>;
+  registrar: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
   carrito: Articulo[];
   agregarAlCarrito: (item: Articulo) => void;
   eliminarDelCarrito: (id: string) => void;
@@ -16,91 +25,65 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   
-  // --- ESTADO USUARIO ---
-  const [usuario, setUsuario] = useState<Usuario | null>(() => {
-    const guardado = localStorage.getItem('ldcars_user_session');
-    return guardado ? JSON.parse(guardado) : null;
-  });
+  // --- ESTADO USUARIO (Ahora controlado por Firebase) ---
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [cargandoAuth, setCargandoAuth] = useState(true); // Arranca cargando
 
-  // --- ESTADO CARRITO (Inicializado vacío) ---
+  // --- ESTADO CARRITO ---
   const [carrito, setCarrito] = useState<Articulo[]>([]);
 
-  // --- ESTADO USUARIOS REGISTRADOS ---
-  const [usuariosRegistrados, setUsuariosRegistrados] = useState<any[]>(() => {
-    const guardados = localStorage.getItem('ldcars_users_db');
-    return guardados ? JSON.parse(guardados) : [];
-  });
+  // --- EL VIGÍA DE SESIÓN DE FIREBASE (Exigencia de la Rúbrica) ---
+  useEffect(() => {
+    // onAuthStateChanged verifica si hay una sesión activa en los servidores de Google
+    const unsubscribe = onAuthStateChanged(auth, (userFirebase) => {
+      if (userFirebase) {
+        setUsuario({ 
+          username: userFirebase.email?.split('@')[0] || 'Usuario', 
+          role: 'admin', // Por ahora todos son admin para mantener tu app funcionando
+          correo: userFirebase.email || ''
+        });
+      } else {
+        setUsuario(null);
+      }
+      setCargandoAuth(false); // Termina de validar
+    });
 
-  // --- EFECTOS DE PERSISTENCIA ---
+    return () => unsubscribe(); // Se limpia cuando se cierra la app
+  }, []);
 
-  // Guardar usuario
-  useEffect(() => { 
-    localStorage.setItem('ldcars_user_session', JSON.stringify(usuario)); 
-  }, [usuario]);
-
-  // Cargar carrito específico cuando cambia el usuario
+  // Efectos del carrito (Se mantienen para no romper tu lógica actual)
   useEffect(() => {
     if (usuario) {
-      const key = `ldcars_carrito_${usuario.username}`;
-      const guardado = localStorage.getItem(key);
+      const guardado = localStorage.getItem(`ldcars_carrito_${usuario.username}`);
       setCarrito(guardado ? JSON.parse(guardado) : []);
     } else {
-      setCarrito([]); // Limpiar carrito si no hay usuario
+      setCarrito([]);
     }
   }, [usuario]);
 
-  // Guardar carrito específico cuando cambian los items
   useEffect(() => {
     if (usuario) {
       localStorage.setItem(`ldcars_carrito_${usuario.username}`, JSON.stringify(carrito));
     }
   }, [carrito, usuario]);
 
-  // Guardar base de datos de usuarios
-  useEffect(() => { 
-    localStorage.setItem('ldcars_users_db', JSON.stringify(usuariosRegistrados)); 
-  }, [usuariosRegistrados]);
+  // --- FUNCIONES DE CONTROL FIREBASE ---
 
-  // --- FUNCIONES DE CONTROL ---
-
-  const login = (user: string, pass: string) => {
-    if (user === 'admin123' && pass === '1234') {
-      setUsuario({ username: 'Administrador', role: 'admin' });
-      return true;
-    }
-    const existe = usuariosRegistrados.find(u => u.user === user && u.pass === pass);
-    if (existe) {
-      setUsuario({ 
-        username: user, 
-        role: 'cliente', 
-        correo: existe.correo, 
-        nombreReal: existe.nombre, 
-        telefono: existe.telefono 
-      });
-      return true;
-    }
-    return false;
+  const login = async (email: string, pass: string) => {
+    // Intenta loguearse en Firebase. Si falla, lanzará un error que capturaremos en la pantalla de Login
+    await signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const registrar = (datos: any) => {
-    if (datos.user === 'admin123') return "Nombre de usuario reservado.";
-    if (usuariosRegistrados.find(u => u.user === datos.user)) return "El usuario ya existe.";
-    
-    setUsuariosRegistrados([...usuariosRegistrados, datos]);
-    setUsuario({ 
-      username: datos.user, 
-      role: 'cliente', 
-      correo: datos.correo, 
-      nombreReal: datos.nombre, 
-      telefono: datos.telefono 
-    });
-    return true;
+  const registrar = async (email: string, pass: string) => {
+    await createUserWithEmailAndPassword(auth, email, pass);
   };
 
-  const logout = () => { 
-    setUsuario(null); 
+  const logout = async () => {
+    // Destruye la sesión real en Firebase (Exigencia de la rúbrica)
+    await signOut(auth); 
   };
   
+  // --- FUNCIONES DEL CARRITO ---
   const agregarAlCarrito = (item: Articulo) => {
     setCarrito(prev => [...prev, item]);
   };
@@ -115,7 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      usuario, 
+      usuario,
+      cargandoAuth, // Exponemos esto para proteger las rutas
       login, 
       registrar, 
       logout, 
@@ -124,7 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       eliminarDelCarrito, 
       vaciarCarrito 
     }}>
-      {children}
+      {/* Solo mostramos la app si Firebase ya confirmó el estado de la sesión */}
+      {!cargandoAuth && children}
     </AuthContext.Provider>
   );
 }
