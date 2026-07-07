@@ -17,17 +17,20 @@ const esFechaValida = (fecha: string) => {
   return seleccionada >= hoy;
 };
 
+// --- IMPORTACIONES DE FIREBASE COMPLETAS ---
+import { db } from '../firebase';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, getDocs } from 'firebase/firestore';
+
 export default function Vehiculos() {
   const auth = useContext(AuthContext);
   const isAdmin = auth?.usuario?.role === 'admin';
   const isCliente = auth?.usuario?.role === 'cliente';
 
-  // --- ESTADO INICIAL: VEHICULOS ---
+  // --- ESTADO INICIAL: VEHICULOS (MIGRADO A HOOK DE LA NUBE) ---
 
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>(() => {
-    const guardados = localStorage.getItem('ldcars_vehiculos');
-    return guardados ? JSON.parse(guardados) : [];
-  });
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [errorFirebase, setErrorFirebase] = useState<string | null>(null);
   
   const [busqueda, setBusqueda] = useState('');
   
@@ -62,11 +65,29 @@ export default function Vehiculos() {
   const [paginaActual, setPaginaActual] = useState(1);
   const vehiculosPorPagina = 3;
 
-  // --- PERSISTENCIA ---
+  // --- PERSISTENCIA REAL TIME EN FIRESTORE ---
 
-  useEffect(() => { 
-    localStorage.setItem('ldcars_vehiculos', JSON.stringify(vehiculos)); 
-  }, [vehiculos]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "vehiculos"), 
+      (snapshot) => {
+        const vehiculosFirebase = snapshot.docs.map(docSnap => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        })) as Vehiculo[];
+        
+        setVehiculos(vehiculosFirebase);
+        setCargando(false);
+        setErrorFirebase(null);
+      },
+      (error) => {
+        console.error("Error al conectar con Firestore: ", error);
+        setCargando(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // --- LÓGICA DE FILTRADO Y PAGINACIÓN ---
 
@@ -84,23 +105,26 @@ export default function Vehiculos() {
     setPaginaActual(1); 
   }, [busqueda]);
 
-  // --- FUNCIONES CRUD ---
+  // --- FUNCIONES CRUD MIGRADAS ---
 
-  const handleGuardar = (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editandoId) {
-      setVehiculos(vehiculos.map(v => 
-        v.id === editandoId ? { ...v, ...form, anio: Number(form.anio), precio: Number(form.precio) } : v
-      ));
-      setEditandoId(null);
-    } else {
-      setVehiculos([...vehiculos, { 
-        id: Date.now().toString(), 
-        ...form, 
-        anio: Number(form.anio), 
-        precio: Number(form.precio) 
-      }]);
+    const datosGuardar = {
+      ...form,
+      anio: Number(form.anio),
+      precio: Number(form.precio)
+    };
+
+    try {
+      if (editandoId) {
+        await updateDoc(doc(db, "vehiculos", editandoId), datosGuardar);
+        setEditandoId(null);
+      } else {
+        await addDoc(collection(db, "vehiculos"), datosGuardar);
+      }
+    } catch (error) {
+      alert("❌ Hubo un error al guardar el vehículo en la base de datos de Firestore.");
     }
     
     setForm({ 
@@ -115,9 +139,13 @@ export default function Vehiculos() {
     });
   };
 
-  const handleEliminar = (id: string) => { 
+  const handleEliminar = async (id: string) => { 
     if(window.confirm("¿Seguro que deseas eliminar este registro?")) {
-      setVehiculos(vehiculos.filter(v => v.id !== id)); 
+      try {
+        await deleteDoc(doc(db, "vehiculos", id));
+      } catch (error) {
+        alert("❌ Error al intentar eliminar el archivo de la nube.");
+      }
     }
   };
 
@@ -136,26 +164,39 @@ export default function Vehiculos() {
     window.scrollTo(0, 0);
   };
 
-  // --- LÓGICA DE RESERVA ---
+  // --- LÓGICA DE RESERVA MIGRADA COMPLETAMENTE A NUBE ---
 
-  const abrirReserva = (v: Vehiculo) => {
-    const reservas = JSON.parse(localStorage.getItem('ldcars_reservas') || '[]');
-    const yaReservo = reservas.find((r: Reserva) => r.vehiculoId === v.id && r.clienteUser === auth?.usuario?.username);
-    
-    if (yaReservo) {
-      return alert("❌ Ya tienes una reserva activa para este vehículo.");
+  const abrirReserva = async (v: Vehiculo) => {
+    if (!auth?.usuario?.username) {
+      return alert("❌ Debes iniciar sesión para realizar una reserva.");
     }
-    
-    setFormReserva({ 
-      nombreReal: auth?.usuario?.nombreReal || '', 
-      correo: auth?.usuario?.correo || '', 
-      telefono: auth?.usuario?.telefono || '', 
-      fechaVisita: '' 
-    });
-    setVehiculoReserva(v);
+
+    try {
+      const q = query(
+        collection(db, "reservas"), 
+        where("vehiculoId", "==", v.id), 
+        where("clienteUser", "==", auth.usuario.username)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        return alert("❌ Ya tienes una reserva activa para este vehículo.");
+      }
+      
+      setFormReserva({ 
+        nombreReal: auth?.usuario?.nombreReal || '', 
+        correo: auth?.usuario?.correo || '', 
+        telefono: auth?.usuario?.telefono || '', 
+        fechaVisita: '' 
+      });
+      setVehiculoReserva(v);
+    } catch (error) {
+      console.error(error);
+      alert("❌ Error al comprobar el estado de las reservas.");
+    }
   };
 
-  const confirmarReserva = (e: React.FormEvent) => {
+  const confirmarReserva = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!esEmailValido(formReserva.correo)) {
@@ -172,8 +213,7 @@ export default function Vehiculos() {
     
     if (!auth?.usuario || !vehiculoReserva) return;
 
-    const nuevaReserva: Reserva = {
-      id: Date.now().toString(), 
+    const nuevaReserva = {
       vehiculoId: vehiculoReserva.id, 
       vehiculoNombre: `${vehiculoReserva.marca} ${vehiculoReserva.modelo}`,
       clienteUser: auth.usuario.username, 
@@ -183,14 +223,16 @@ export default function Vehiculos() {
       fecha: formReserva.fechaVisita
     };
 
-    const reservasGuardadas = JSON.parse(localStorage.getItem('ldcars_reservas') || '[]');
-    localStorage.setItem('ldcars_reservas', JSON.stringify([...reservasGuardadas, nuevaReserva]));
-    
-    alert("✅ ¡Reserva confirmada!");
-    setVehiculoReserva(null);
+    try {
+      await addDoc(collection(db, "reservas"), nuevaReserva);
+      alert("✅ ¡Reserva confirmada!");
+      setVehiculoReserva(null);
+    } catch (error) {
+      alert("❌ No se pudo registrar tu reserva en Firestore.");
+    }
   };
 
-  // --- RENDERIZADO ---
+  // --- RENDERIZADO (RESPETANDO TU MAQUETACIÓN EXACTA) ---
 
   return (
     <section>
@@ -209,12 +251,44 @@ export default function Vehiculos() {
           <h3>{editandoId ? '✏️ Editar Vehículo' : '➕ Añadir Vehículo'}</h3>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '15px' }}>
-            <input placeholder="Marca" value={form.marca} onChange={e => setForm({...form, marca: e.target.value})} required />
-            <input placeholder="Modelo" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} required />
-            <input type="number" placeholder="Año" value={form.anio} onChange={e => setForm({...form, anio: e.target.value})} required />
-            <input placeholder="Patente" value={form.patente} onChange={e => setForm({...form, patente: e.target.value})} required />
-            <input type="number" placeholder="Precio ($)" value={form.precio} onChange={e => setForm({...form, precio: e.target.value})} required />
-            <input placeholder="Color" value={form.color} onChange={e => setForm({...form, color: e.target.value})} required />
+            <input 
+              placeholder="Marca" 
+              value={form.marca} 
+              onChange={e => setForm({...form, marca: e.target.value})} 
+              required 
+            />
+            <input 
+              placeholder="Modelo" 
+              value={form.modelo} 
+              onChange={e => setForm({...form, modelo: e.target.value})} 
+              required 
+            />
+            <input 
+              type="number" 
+              placeholder="Año" 
+              value={form.anio} 
+              onChange={e => setForm({...form, anio: e.target.value})} 
+              required 
+            />
+            <input 
+              placeholder="Patente" 
+              value={form.patente} 
+              onChange={e => setForm({...form, patente: e.target.value})} 
+              required 
+            />
+            <input 
+              type="number" 
+              placeholder="Precio ($)" 
+              value={form.precio} 
+              onChange={e => setForm({...form, precio: e.target.value})} 
+              required 
+            />
+            <input 
+              placeholder="Color" 
+              value={form.color} 
+              onChange={e => setForm({...form, color: e.target.value})} 
+              required 
+            />
             
             <select value={form.estado} onChange={e => setForm({...form, estado: e.target.value as any})} style={{ padding: '10px' }}>
               <option value="nuevo">Nuevo</option>
@@ -222,7 +296,11 @@ export default function Vehiculos() {
               <option value="usado">Usado</option>
             </select>
             
-            <input placeholder="URL Imagen (Opcional)" value={form.imagen} onChange={e => setForm({...form, imagen: e.target.value})} />
+            <input 
+              placeholder="URL Imagen (Opcional)" 
+              value={form.imagen} 
+              onChange={e => setForm({...form, imagen: e.target.value})} 
+            />
           </div>
           
           <button type="submit" style={{ padding: '10px 20px', background: editandoId ? '#3498db' : '#2c3e50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
