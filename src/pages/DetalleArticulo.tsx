@@ -2,6 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { Articulo } from '../types/index';
 import { AuthContext } from '../context/AuthContext';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function DetalleArticulo() {
   const { id } = useParams(); 
@@ -9,16 +11,30 @@ export default function DetalleArticulo() {
   const isCliente = auth?.usuario?.role === 'cliente';
   
   const [articulo, setArticulo] = useState<Articulo | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0); 
-    const guardados = localStorage.getItem('ldcars_articulos');
-    if (guardados) {
-      const lista: Articulo[] = JSON.parse(guardados);
-      const encontrado = lista.find(a => a.id === id);
-      if (encontrado) setArticulo(encontrado);
-    }
+    const fetchArticulo = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, 'articulos', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setArticulo({ id: docSnap.id, ...docSnap.data() } as Articulo);
+        }
+      } catch (error) {
+        console.error("Error al cargar detalle del artículo:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchArticulo();
   }, [id]);
+
+  if (cargando) {
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Cargando detalles del artículo...</h2></div>;
+  }
 
   if (!articulo) {
     return (
@@ -29,19 +45,19 @@ export default function DetalleArticulo() {
     );
   }
 
-  // Imagen por defecto por si el admin no pone una URL
   const imagenMostrar = articulo.imagen || "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div className="detalle-card" style={{ maxWidth: '900px', margin: '40px auto', background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-      <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'center' }}>
-        
-        {/* Lado Izquierdo: Foto */}
+    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
         <div style={{ flex: '1 1 400px' }}>
-          <img src={imagenMostrar} alt={articulo.nombre} style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', boxShadow: '0 4px 8px rgba(0,0,0,0.2)' }} />
+          <img 
+            src={imagenMostrar} 
+            alt={articulo.nombre} 
+            style={{ width: '100%', borderRadius: '8px', objectFit: 'cover', boxShadow: '0 4px 8px rgba(0,0,0,0.2)' }} 
+          />
         </div>
 
-        {/* Lado Derecho: Detalles */}
         <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ borderBottom: '2px solid #3498db', paddingBottom: '10px', marginTop: 0, fontSize: '2.5rem' }}>
             {articulo.nombre}
@@ -55,20 +71,21 @@ export default function DetalleArticulo() {
               ${articulo.precio.toLocaleString()}
             </p>
             
-            {/* Botón de compra solo para clientes */}
             {isCliente && (
-              <button onClick={() => { auth?.agregarAlCarrito(articulo); alert("¡Añadido al carrito!"); }} style={{ width: '100%', padding: '15px', background: '#e67e22', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}>
+              <button 
+                onClick={() => { auth?.agregarAlCarrito(articulo); alert("¡Añadido al carrito!"); }} 
+                style={{ width: '100%', padding: '15px', background: '#e67e22', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '1.1rem', cursor: 'pointer' }}
+              >
                 Añadir al Carrito 🛒
               </button>
             )}
           </div>
         </div>
-
       </div>
 
       <div style={{ marginTop: '40px', textAlign: 'center' }}>
-        <Link to="/" style={{ padding: '12px 30px', background: '#e74c3c', color: 'white', textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '1.1rem' }}>
-          ← Volver al Catálogo
+        <Link to="/" style={{ padding: '12px 25px', background: '#2c3e50', color: 'white', textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold' }}>
+          Volver a la Tienda
         </Link>
       </div>
     </div>

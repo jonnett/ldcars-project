@@ -1,21 +1,36 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { Vehiculo } from '../types/index';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function DetalleVehiculo() {
   const { id } = useParams(); 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // Hace scroll automático hacia arriba al entrar al detalle
     window.scrollTo(0, 0); 
-    const guardados = localStorage.getItem('ldcars_vehiculos');
-    if (guardados) {
-      const listaVehiculos: Vehiculo[] = JSON.parse(guardados);
-      const encontrado = listaVehiculos.find(v => v.id === id);
-      if (encontrado) setVehiculo(encontrado);
-    }
+    const fetchVehiculo = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, 'vehiculos', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setVehiculo({ id: docSnap.id, ...docSnap.data() } as Vehiculo);
+        }
+      } catch (error) {
+        console.error("Error al cargar detalle del vehículo:", error);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchVehiculo();
   }, [id]);
+
+  if (cargando) {
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}><h2>Cargando detalles del vehículo...</h2></div>;
+  }
 
   if (!vehiculo) {
     return (
@@ -26,14 +41,11 @@ export default function DetalleVehiculo() {
     );
   }
 
-  // Imagen por defecto por si el vehículo no tiene URL de imagen guardada
   const imagenMostrar = vehiculo.imagen || "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div className="detalle-card" style={{ maxWidth: '900px', margin: '40px auto', background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-      <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap', alignItems: 'center' }}>
-        
-        {/* Lado Izquierdo: Foto */}
+    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
         <div style={{ flex: '1 1 400px' }}>
           <img 
             src={imagenMostrar} 
@@ -42,7 +54,6 @@ export default function DetalleVehiculo() {
           />
         </div>
 
-        {/* Lado Derecho: Detalles */}
         <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column' }}>
           <h2 style={{ borderBottom: '2px solid #3498db', paddingBottom: '10px', marginTop: 0, fontSize: '2.5rem' }}>
             {vehiculo.marca} {vehiculo.modelo}
@@ -57,12 +68,11 @@ export default function DetalleVehiculo() {
             </p>
           </div>
         </div>
-
       </div>
 
       <div style={{ marginTop: '40px', textAlign: 'center' }}>
-        <Link to="/" style={{ padding: '12px 30px', background: '#e74c3c', color: 'white', textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '1.1rem' }}>
-          ← Volver al Catálogo
+        <Link to="/" style={{ padding: '12px 25px', background: '#2c3e50', color: 'white', textDecoration: 'none', borderRadius: '6px', fontWeight: 'bold' }}>
+          Volver a la Galería
         </Link>
       </div>
     </div>

@@ -5,13 +5,13 @@ import {
   createUserWithEmailAndPassword, 
   signOut 
 } from 'firebase/auth';
-import { auth } from '../firebase'; // Importamos tu conexión segura a Firebase
+import { auth, db } from '../firebase'; 
+import { doc, getDoc } from 'firebase/firestore';
 import type { Usuario, Articulo } from '../types/index';
 
-// Actualizamos el contrato: ahora las funciones devuelven Promesas (porque van a la nube)
 interface AuthContextType {
   usuario: Usuario | null;
-  cargandoAuth: boolean; // Necesario para evitar parpadeos en rutas protegidas
+  cargandoAuth: boolean; 
   login: (email: string, pass: string) => Promise<void>;
   registrar: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,34 +24,57 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  
-  // --- ESTADO USUARIO (Ahora controlado por Firebase) ---
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [cargandoAuth, setCargandoAuth] = useState(true); // Arranca cargando
-
-  // --- ESTADO CARRITO ---
+  const [cargandoAuth, setCargandoAuth] = useState(true);
   const [carrito, setCarrito] = useState<Articulo[]>([]);
 
-  // --- EL VIGÍA DE SESIÓN DE FIREBASE (Exigencia de la Rúbrica) ---
   useEffect(() => {
-    // onAuthStateChanged verifica si hay una sesión activa en los servidores de Google
-    const unsubscribe = onAuthStateChanged(auth, (userFirebase) => {
-      if (userFirebase) {
-        setUsuario({ 
-          username: userFirebase.email?.split('@')[0] || 'Usuario', 
-          role: 'admin', // Por ahora todos son admin para mantener tu app funcionando
-          correo: userFirebase.email || ''
-        });
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const docRef = doc(db, 'usuarios', firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setUsuario({
+              username: data.correo || firebaseUser.email || '',
+              role: firebaseUser.email === 'admin@ldcars.com' ? 'admin' : (data.role || 'cliente'),
+              correo: data.correo || firebaseUser.email || '',
+              nombreReal: data.nombreReal || '',
+              telefono: data.telefono || ''
+            });
+          } else {
+            // Fallback si el usuario fue registrado en la consola de Auth manualmente
+            setUsuario({
+              username: firebaseUser.email || '',
+              role: firebaseUser.email === 'admin@ldcars.com' ? 'admin' : 'cliente',
+              correo: firebaseUser.email || '',
+              nombreReal: firebaseUser.email === 'admin@ldcars.com' ? 'Administrador General' : 'Usuario Nuevo',
+              telefono: ''
+            });
+          }
+        } catch (error) {
+          console.error("Error al recuperar los detalles del usuario:", error);
+          // Permitir ingreso parcial si es el administrador maestro
+          if (firebaseUser.email === 'admin@ldcars.com') {
+            setUsuario({
+              username: firebaseUser.email,
+              role: 'admin',
+              correo: firebaseUser.email,
+              nombreReal: 'Administrador Maestro'
+            });
+          }
+        }
       } else {
         setUsuario(null);
       }
-      setCargandoAuth(false); // Termina de validar
+      setCargandoAuth(false);
     });
 
-    return () => unsubscribe(); // Se limpia cuando se cierra la app
+    return () => unsubscribe();
   }, []);
 
-  // Efectos del carrito (Se mantienen para no romper tu lógica actual)
   useEffect(() => {
     if (usuario) {
       const guardado = localStorage.getItem(`ldcars_carrito_${usuario.username}`);
@@ -67,10 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [carrito, usuario]);
 
-  // --- FUNCIONES DE CONTROL FIREBASE ---
-
   const login = async (email: string, pass: string) => {
-    // Intenta loguearse en Firebase. Si falla, lanzará un error que capturaremos en la pantalla de Login
     await signInWithEmailAndPassword(auth, email, pass);
   };
 
@@ -79,11 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    // Destruye la sesión real en Firebase (Exigencia de la rúbrica)
     await signOut(auth); 
   };
   
-  // --- FUNCIONES DEL CARRITO ---
   const agregarAlCarrito = (item: Articulo) => {
     setCarrito(prev => [...prev, item]);
   };
@@ -99,17 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ 
       usuario,
-      cargandoAuth, // Exponemos esto para proteger las rutas
-      login, 
-      registrar, 
-      logout, 
-      carrito, 
-      agregarAlCarrito, 
-      eliminarDelCarrito, 
-      vaciarCarrito 
+      cargandoAuth,
+      login,
+      registrar,
+      logout,
+      carrito,
+      agregarAlCarrito,
+      eliminarDelCarrito,
+      vaciarCarrito
     }}>
-      {/* Solo mostramos la app si Firebase ya confirmó el estado de la sesión */}
-      {!cargandoAuth && children}
+      {children}
     </AuthContext.Provider>
   );
 }

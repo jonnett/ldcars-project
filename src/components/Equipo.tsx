@@ -1,30 +1,51 @@
 import React, { useState, useEffect, useContext } from 'react';
 import type { Colaborador } from '../types/index';
 import { AuthContext } from '../context/AuthContext';
+import { db } from '../firebase';
+import { collection, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 export default function Equipo() {
   const auth = useContext(AuthContext);
   const isAdmin = auth?.usuario?.role === 'admin';
 
-  const [equipo, setEquipo] = useState<Colaborador[]>(() => {
-    const guardados = localStorage.getItem('ldcars_equipo');
-    return guardados ? JSON.parse(guardados) : [
-      { id: '1', nombre: 'Juan Pérez', cargo: 'Gerente de Ventas' },
-      { id: '2', nombre: 'Ana Gómez', cargo: 'Jefa de Operaciones' }
-    ];
-  });
-
+  const [equipo, setEquipo] = useState<Colaborador[]>([]);
   const [form, setForm] = useState({ nombre: '', cargo: '' });
 
-  useEffect(() => { localStorage.setItem('ldcars_equipo', JSON.stringify(equipo)); }, [equipo]);
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'equipo'), (snapshot) => {
+      const datos = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Colaborador[];
+      setEquipo(datos);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const handleGuardar = (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEquipo([...equipo, { id: Date.now().toString(), nombre: form.nombre, cargo: form.cargo }]);
-    setForm({ nombre: '', cargo: '' });
+    if (!form.nombre || !form.cargo) return;
+    try {
+      await addDoc(collection(db, 'equipo'), {
+        nombre: form.nombre,
+        cargo: form.cargo
+      });
+      setForm({ nombre: '', cargo: '' });
+      alert("¡Colaborador añadido correctamente en la nube!");
+    } catch (error: any) {
+      console.error("Error al añadir colaborador:", error);
+      alert("Error de Firebase: " + error.message);
+    }
   };
 
-  const handleEliminar = (id: string) => setEquipo(equipo.filter(c => c.id !== id));
+  const handleEliminar = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'equipo', id));
+    } catch (error: any) {
+      console.error("Error al eliminar colaborador:", error);
+      alert("Error de Firebase: " + error.message);
+    }
+  };
 
   return (
     <section style={{ marginTop: '50px', paddingBottom: '40px' }}>
@@ -34,8 +55,20 @@ export default function Equipo() {
         <form onSubmit={handleGuardar} className="crud-form" style={{ marginBottom: '20px' }}>
           <h3>➕ Añadir Colaborador</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
-            <input placeholder="Nombre" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required style={{ flex: 1 }} />
-            <input placeholder="Cargo" value={form.cargo} onChange={e => setForm({...form, cargo: e.target.value})} required style={{ flex: 1 }} />
+            <input 
+              placeholder="Nombre" 
+              value={form.nombre} 
+              onChange={e => setForm({...form, nombre: e.target.value})} 
+              required 
+              style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+            />
+            <input 
+              placeholder="Cargo" 
+              value={form.cargo} 
+              onChange={e => setForm({...form, cargo: e.target.value})} 
+              required 
+              style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+            />
             <button type="submit" style={{ padding: '10px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Guardar</button>
           </div>
         </form>
@@ -43,12 +76,17 @@ export default function Equipo() {
 
       <div className="team-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
         {equipo.map(miembro => (
-          <div key={miembro.id} className="item-card" style={{ textAlign: 'center', position: 'relative' }}>
+          <div key={miembro.id} className="item-card" style={{ textAlign: 'center', position: 'relative', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
             {isAdmin && (
-              <button onClick={() => handleEliminar(miembro.id)} style={{ position: 'absolute', top: '10px', right: '10px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer' }}>X</button>
+              <button 
+                onClick={() => handleEliminar(miembro.id)} 
+                style={{ position: 'absolute', top: '10px', right: '10px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ×
+              </button>
             )}
-            <h3 style={{ margin: '10px 0' }}>{miembro.nombre}</h3>
-            <p style={{ color: '#7f8c8d', fontWeight: 'bold', margin: 0 }}>{miembro.cargo}</p>
+            <h3>{miembro.nombre}</h3>
+            <p style={{ color: '#7f8c8d', margin: '5px 0 0 0' }}>{miembro.cargo}</p>
           </div>
         ))}
       </div>

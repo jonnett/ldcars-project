@@ -5,9 +5,12 @@ import { AuthContext } from '../context/AuthContext';
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const auth = useContext(AuthContext);
   
-  // Si no es admin, lo devolvemos al login
-  if (!auth?.esAdmin) {
-    return <Navigate to="/login" replace />;
+  if (auth?.cargandoAuth) {
+    return <div style={{ textAlign: 'center', marginTop: '50px' }}>Cargando permisos de administrador...</div>;
+  }
+
+  if (auth?.usuario?.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
   
   return <>{children}</>;
