@@ -52,7 +52,7 @@ export default function Equipo() {
       <h2>Nuestro Equipo</h2>
       
       {isAdmin && (
-        <form onSubmit={handleGuardar} className="crud-form" style={{ marginBottom: '20px' }}>
+        <form onSubmit={handleGuardar} className="crud-form" style={{ marginBottom: '20px', padding: '20px', borderRadius: '8px' }}>
           <h3>➕ Añadir Colaborador</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input 
@@ -60,14 +60,14 @@ export default function Equipo() {
               value={form.nombre} 
               onChange={e => setForm({...form, nombre: e.target.value})} 
               required 
-              style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+              style={{ flex: 1, padding: '10px', borderRadius: '4px' }} 
             />
             <input 
               placeholder="Cargo" 
               value={form.cargo} 
               onChange={e => setForm({...form, cargo: e.target.value})} 
               required 
-              style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }} 
+              style={{ flex: 1, padding: '10px', borderRadius: '4px' }} 
             />
             <button type="submit" style={{ padding: '10px', background: '#2c3e50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Guardar</button>
           </div>
@@ -76,7 +76,7 @@ export default function Equipo() {
 
       <div className="team-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
         {equipo.map(miembro => (
-          <div key={miembro.id} className="item-card" style={{ textAlign: 'center', position: 'relative', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
+          <div key={miembro.id} className="item-card" style={{ textAlign: 'center', position: 'relative', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             {isAdmin && (
               <button 
                 onClick={() => handleEliminar(miembro.id)} 

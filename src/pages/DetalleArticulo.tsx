@@ -48,7 +48,7 @@ export default function DetalleArticulo() {
   const imagenMostrar = articulo.imagen || "https://images.unsplash.com/photo-1599839619722-39751411ea63?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+    <div className="detalle-card" style={{ padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
         <div style={{ flex: '1 1 400px' }}>
           <img 

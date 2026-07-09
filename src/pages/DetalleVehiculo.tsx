@@ -44,7 +44,7 @@ export default function DetalleVehiculo() {
   const imagenMostrar = vehiculo.imagen || "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
+    <div className="detalle-card" style={{ padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginTop: '20px' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px' }}>
         <div style={{ flex: '1 1 400px' }}>
           <img 
