@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import type { Vehiculo, Reserva } from '../types/index';
+import type { Vehiculo} from '../types/index';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -82,6 +82,7 @@ export default function Vehiculos() {
       },
       (error) => {
         console.error("Error al conectar con Firestore: ", error);
+        setErrorFirebase("No se pudieron cargar los vehículos. Por favor, intenta más tarde.");
         setCargando(false);
       }
     );
@@ -245,6 +246,10 @@ export default function Vehiculos() {
         value={busqueda} 
         onChange={(e) => setBusqueda(e.target.value)} 
       />
+
+      {/* MENSAJES DE CARGA Y ERROR PARA USAR LAS VARIABLES */}
+      {cargando && <p style={{ textAlign: 'center', color: '#7f8c8d', margin: '20px 0' }}>⏳ Cargando el catálogo de vehículos...</p>}
+      {errorFirebase && <p style={{ textAlign: 'center', color: '#e74c3c', margin: '20px 0', fontWeight: 'bold' }}>⚠️ {errorFirebase}</p>}
 
       {isAdmin && (
         <form onSubmit={handleGuardar} className="crud-form" style={{ border: editandoId ? '2px solid #3498db' : 'none' }}>
