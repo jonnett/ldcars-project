@@ -78,7 +78,7 @@ const NavBar = () => {
   };
 
   return (
-    <header style={{ background: '#2c3e50', color: 'white', padding: '15px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <header style={{ background: '#2c3e50', color: 'white', padding: '15px 20px', display: 'flex', flexDirection: 'column', gap: '10px', position: 'relative', zIndex: 100 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: '1.5rem' }}>
           <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>LdCars Intranet</Link>
@@ -122,7 +122,7 @@ const NavBar = () => {
       </div>
 
       {menuAbierto && !authContext?.usuario && (
-        <div style={{ background: '#34495e', padding: '20px', borderRadius: '6px', marginTop: '10px', maxWidth: '400px', alignSelf: 'flex-end', width: '100%', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
+        <div style={{ background: '#34495e', padding: '20px', borderRadius: '6px', marginTop: '10px', maxWidth: '400px', width: '100%', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', position: 'absolute', top: '100%', right: '20px', zIndex: 1000 }}>
           {modoRegistro ? (
             <form onSubmit={handleRegistroSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <h4 style={{ margin: '0 0 5px 0', textAlign: 'center' }}>Crear Cuenta de Cliente</h4>
@@ -150,7 +150,7 @@ const NavBar = () => {
       )}
 
       {carritoAbierto && authContext?.usuario?.role === 'cliente' && (
-        <div style={{ background: 'white', color: '#333', padding: '15px', borderRadius: '6px', marginTop: '10px', maxWidth: '350px', alignSelf: 'flex-end', width: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid #ddd' }}>
+        <div style={{ background: 'white', color: '#333', padding: '15px', borderRadius: '6px', marginTop: '10px', maxWidth: '350px', width: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid #ddd', position: 'absolute', top: '100%', right: '20px', zIndex: 1000 }}>
           <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>Tu Carrito 🛒</h4>
           {authContext.carrito.length === 0 ? (
             <p style={{ color: '#7f8c8d', fontSize: '0.9rem', textAlign: 'center', margin: '10px 0' }}>El carrito está vacío.</p>
