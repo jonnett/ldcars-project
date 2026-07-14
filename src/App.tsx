@@ -34,7 +34,7 @@ const NavBar = () => {
     }
   }, [isDark]);
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setErrorAuth(null);
     try {
@@ -49,7 +49,7 @@ const NavBar = () => {
     }
   };
 
-  const handleRegistroSubmit = async (e: React.FormEvent) => {
+  const handleRegistroSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setErrorAuth(null);
     try {
