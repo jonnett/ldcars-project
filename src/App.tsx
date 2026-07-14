@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
 import { useContext, useState, useEffect } from 'react';
 import Carrusel from './components/Carrusel';
 import Vehiculos from './pages/Vehiculos';
