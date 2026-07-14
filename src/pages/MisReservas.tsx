@@ -30,7 +30,7 @@ export default function MisReservas() {
     return () => unsubscribe();
   }, [auth?.usuario]);
 
-  const handleCancelar = async (e: React.FormEvent) => {
+  const handleCancelar = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!reservaACancelar) return;
 

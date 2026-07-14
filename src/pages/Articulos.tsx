@@ -37,7 +37,7 @@ export default function Articulos() {
     return () => unsubscribe();
   }, []);
 
-  const handleGuardar = async (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     const dataGuardar = {
       nombre: form.nombre,

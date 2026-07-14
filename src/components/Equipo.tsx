@@ -22,7 +22,7 @@ export default function Equipo() {
     return () => unsubscribe();
   }, []);
 
-  const handleGuardar = async (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!form.nombre || !form.cargo) return;
     try {

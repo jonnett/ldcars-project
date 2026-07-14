@@ -108,7 +108,7 @@ export default function Vehiculos() {
 
   // --- FUNCIONES CRUD MIGRADAS ---
 
-  const handleGuardar = async (e: React.FormEvent) => {
+  const handleGuardar = async (e: React.SyntheticEvent) => {
     e.preventDefault();
 
     const datosGuardar = {
@@ -197,7 +197,7 @@ export default function Vehiculos() {
     }
   };
 
-  const confirmarReserva = async (e: React.FormEvent) => {
+  const confirmarReserva = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     
     if (!esEmailValido(formReserva.correo)) {
